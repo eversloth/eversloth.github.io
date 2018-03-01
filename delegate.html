@@ -1,0 +1,21 @@
+<html>
+<head>
+<script language="javascript">
+function refine() {
+var shareText = document.forms[0].vesting_shares.value.trim();
+if (shareText.endsWith(" SP"))
+        return;
+
+document.forms[0].vesting_shares.value = shareText + " SP";
+}
+</script>
+</head>
+<body>
+<form method="get" action="https://steemconnect.com/sign/delegateVestingShares" onsubmit="refine()">
+본인 주소: <input type="text" name="delegator" /><br/>
+받는 주소: <input type="text" name="delegatee" /><br/>
+보낼 스파: <input type="text" name="vesting_shares" /><br/>
+<input type="submit" />
+</form>
+</body>
+</html>
