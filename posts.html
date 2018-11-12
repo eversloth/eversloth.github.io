@@ -1,0 +1,92 @@
+<html>
+<head>
+<script src="./steem.min.js"></script>
+<script>
+var posts = [];
+function process(prefix, suffix) {
+		hide_loading();
+		console.log("done");
+		document.getElementById("result").value = posts.map(p => prefix + "[" + p.title + "](/@"+ p.author + "/" + p.permlink + ")" + suffix).join("\n");
+		document.getElementById("result").style.display = "inline";
+}
+
+function on_load(user, result, last_post, prefix, suffix) {
+		var bound = last_post? 1: 0;
+		if (result.length > bound) {
+				for (i = bound; i < result.length; i++) {
+						posts.push(result[i]);
+				}
+				load_posts(user, result[result.length-1], prefix, suffix)
+				return;
+		}
+		process(prefix, suffix);
+}
+
+function load_posts(user, last_post, prefix, suffix) {
+		steem.api.getDiscussionsByAuthorBeforeDate(
+				user,
+				last_post?last_post.permlink: '',
+				last_post?last_post.active: '2068-12-31T23:59:59',
+				50, function(err, response){
+						if (err) {
+								handle_error(err);
+								return;
+						}
+						on_load(user, response, last_post, prefix, suffix);
+				});
+}
+
+function handle_error(err) {
+		console.log(err);
+}
+
+function show_loading() {
+		document.getElementById("loading").style.display = "block";
+		
+}
+
+function hide_loading() {
+		document.getElementById("loading").style.display = "none";
+}
+
+function generate(form) {
+		show_loading();
+		load_posts(form.account.value, false, form.prefix.value, form.suffix.value);
+		return false;
+}
+</script>
+</head>
+<body>
+<form onsubmit="return generate(this);">
+<table>
+		<tr>
+				<th>account</th>
+				<td><input type="text" name="account" /></td>
+				<td rowspan=2><input type="submit" value="generate"/></td>
+		</tr>
+		<tr>
+				<th>optional</th>
+				<td>
+						<table>
+								<tr><th>prefix</th><th>suffix</th></tr>
+								<tr>
+								<td><input type="text" name="prefix" size=7 value="<sub>" /></td>
+								<td><input type="text" name="suffix" size=7 value="</sub>"/></td>
+								</tr>
+						</table>
+				</td>
+		</tr>
+		<tr>
+		<td colspan=3>
+		<img id="loading" src="https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif" style="display:none;width:512px"/>
+		</td>
+		</tr>
+		<tr>
+		<th>result</th>
+		<td colspan=2>
+		<textarea id="result" rows="30" cols="80" style="display:none"></textarea>
+		</td>
+		</tr>
+</table>
+</form>
+</html>
