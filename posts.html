@@ -3,37 +3,43 @@
 <script src="./steem.min.js"></script>
 <script>
 var posts = [];
-function process(prefix, suffix) {
-		hide_loading();
-		console.log("done");
-		document.getElementById("result").value = posts.map(p => prefix + "[" + p.title + "](/@"+ p.author + "/" + p.permlink + ")" + suffix).join("\n");
-		document.getElementById("result").style.display = "inline";
+function process(asc, prefix, suffix) {
+	hide_loading();
+	if (asc) {
+		posts.reverse();
+	}
+
+	console.log("done");
+	var resultbox = document.getElementById("result");
+	resultbox.value = posts.map(p => prefix + "[" + p.title + "](/@"+ p.author + "/" + p.permlink + ")" + suffix).join("\n");
+	resultbox.style.display = "inline";
 }
 
-function on_load(user, result, last_post, prefix, suffix) {
-		var bound = last_post? 1: 0;
-		if (result.length > bound) {
-				for (i = bound; i < result.length; i++) {
-						posts.push(result[i]);
-				}
-				load_posts(user, result[result.length-1], prefix, suffix)
-				return;
+function on_load(user, result, last_post, asc, prefix, suffix) {
+	var bound = last_post? 1: 0;
+	if (last_post.created == result[result.length-1].created)
+		console.log("........");
+	if (result.length > bound) {
+		for (i = bound; i < result.length; i++) {
+			posts.push(result[i]);
 		}
-		process(prefix, suffix);
+		load_posts(user, result[result.length-1], asc, prefix, suffix)
+		return;
+	}
+	process(asc, prefix, suffix);
 }
 
-function load_posts(user, last_post, prefix, suffix) {
-		steem.api.getDiscussionsByAuthorBeforeDate(
-				user,
-				last_post?last_post.permlink: '',
-				last_post?last_post.active: '2068-12-31T23:59:59',
-				50, function(err, response){
-						if (err) {
-								handle_error(err);
-								return;
-						}
-						on_load(user, response, last_post, prefix, suffix);
-				});
+function load_posts(user, last_post, asc, prefix, suffix) {
+	steem.api.getDiscussionsByAuthorBeforeDate(
+		user, last_post?last_post.permlink: '',
+		new Date().toJSON().substr(0, 19), 50,
+		function(err, response){
+			if (err) {
+					handle_error(err);
+					return;
+			}
+			on_load(user, response, last_post, asc, prefix, suffix);
+		});
 }
 
 function handle_error(err) {
@@ -41,52 +47,63 @@ function handle_error(err) {
 }
 
 function show_loading() {
-		document.getElementById("loading").style.display = "block";
-		
+	document.getElementById("loading").style.display = "block";
+	document.getElementById("resultth").style.display = "none";
+	document.getElementById("result").style.display = "none";
 }
 
 function hide_loading() {
-		document.getElementById("loading").style.display = "none";
+	document.getElementById("loading").style.display = "none";
+	document.getElementById("resultth").style.display = "inline";
 }
 
 function generate(form) {
-		show_loading();
-		load_posts(form.account.value, false, form.prefix.value, form.suffix.value);
-		return false;
+	posts = [];
+	console.log("start");
+	show_loading();
+	load_posts(form.account.value, false, form.order.value=="asc", form.prefix.value, form.suffix.value);
+	return false;
 }
 </script>
 </head>
 <body>
 <form onsubmit="return generate(this);">
 <table>
-		<tr>
-				<th>account</th>
-				<td><input type="text" name="account" /></td>
-				<td rowspan=2><input type="submit" value="generate"/></td>
-		</tr>
-		<tr>
-				<th>optional</th>
-				<td>
-						<table>
-								<tr><th>prefix</th><th>suffix</th></tr>
-								<tr>
-								<td><input type="text" name="prefix" size=7 value="<sub>" /></td>
-								<td><input type="text" name="suffix" size=7 value="</sub>"/></td>
-								</tr>
-						</table>
-				</td>
-		</tr>
-		<tr>
+	<tr>
+		<th>account</th>
+		<td><input type="text" name="account" /></td>
+		<td rowspan=3><input type="submit" value="generate"/></td>
+	</tr>
+	<tr>
+		<th>order</th>
+		<td>
+			<label><input type="radio" name="order" value="asc" />asc</label>
+			<label><input type="radio" name="order" value="desc" checked/>desc</label>
+		</td>
+	</tr>
+	<tr>
+		<th>option</th>
+		<td>
+			<table>
+				<tr><th>prefix</th><th>suffix</th></tr>
+				<tr>
+				<td><input type="text" name="prefix" size=7 value="<sub>" /></td>
+				<td><input type="text" name="suffix" size=7 value="</sub>"/></td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	<tr>
 		<td colspan=3>
 		<img id="loading" src="https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif" style="display:none;width:512px"/>
 		</td>
-		</tr>
-		<tr>
-		<th>result</th>
-		<td colspan=2>
-		<textarea id="result" rows="30" cols="80" style="display:none"></textarea>
-		</td>
-		</tr>
+	</tr>
+	<tr>
+	<th id="resultth" style="display:none">result</th>
+	<td colspan=3>
+	<textarea id="result" rows="30" cols="80" style="display:none"></textarea>
+	</td>
+	</tr>
 </table>
 </form>
 </html>
