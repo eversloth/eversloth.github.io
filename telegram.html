@@ -1,0 +1,186 @@
+<html>
+    <head>
+    <script language="javascript">
+// api hosted with https://github.com/tjhorner/tstickers-api
+var apihost = "https://tstickertest.herokuapp.com";
+var stickerPrefix = "https://telegram.me/addstickers/";
+
+function getArchivePrefix(width) {
+    return "https://steemitimages.com/"+ width +"x0/";
+}
+
+function getImgSrc(width, element) {
+    return getArchivePrefix(width)
+        +apihost+'/sticker/'+element.id+'.png';
+}
+
+function getImgMarkdown(stickername, width, element) {
+    return "<center>[!["+element.emoji+"](" + getImgSrc(256, element) + ")]"
+    + "(" + stickerPrefix + stickername + ")</center>";
+
+}
+
+function renderRecentSticker() {
+    var recent = localStorage.getItem("!recent");
+    if (!recent) {
+        return;
+    }
+
+    var recentitems = JSON.parse(recent);
+    
+    var resultTarget = document.getElementById("recentStickers");
+    resultTarget.innerHTML = "";
+    recentitems.forEach(function(element) {
+        var stickerinfo = getCachedStickerInfo(element);
+        if (!stickerinfo.stickers)
+            return;
+        var represent = stickerinfo.stickers[0];
+        var elem = document.createElement("IMG");
+        elem.alt = represent.emoji;
+        elem.src = getImgSrc(64, represent);
+        elem.addEventListener("click", function() {
+            loadSticker(element);
+        });
+        resultTarget.appendChild(elem);
+    });
+}
+
+function addRecentSticker(stickername) {
+    var recentkey = "!recent";
+    var recent = localStorage.getItem(recentkey);
+    var recentitems = [];
+    if (recent) {
+        recentitems = JSON.parse(recent);
+    }
+    var idx = recentitems.indexOf(stickername);
+    if (idx >= 0)
+        recentitems.splice(idx, 1);
+    recentitems.unshift(stickername);
+    localStorage.setItem(recentkey, JSON.stringify(recentitems));
+    renderRecentSticker();
+}
+        
+function getCachedStickerInfo(stickername) {
+    var stickerkey = "!sticker_"+stickername;
+    var cached = localStorage.getItem(stickerkey);
+    if (cached) {
+        console.log("load cached data");
+        return JSON.parse(cached);
+    }
+    
+    fetch(apihost+'/pack/'+stickername)
+    .then(
+    function(response) {
+        response.json().then(function(data) {
+            var text = JSON.stringify(data);
+            if (cached != text) {
+                localStorage.setItem(stickerkey, text);
+                return data;
+            } else {
+                console.log("cache hit");
+            }
+        })
+    })
+    .catch(
+    function(err) {
+        console.log('Fetch Error :-S', err);
+    });
+    return false;
+}
+
+function loadSticker(stickername) {
+    var stickerkey = "!sticker_"+stickername;
+    var cached = localStorage.getItem(stickerkey);
+    if (cached) {
+        applyStickerInfo(stickername, JSON.parse(cached));
+        console.log("load cached data");
+    }
+    
+    fetch(apihost+'/pack/'+stickername)
+    .then(
+    function(response) {
+        response.json().then(function(data) {
+            var text = JSON.stringify(data);
+            if (cached != text) {
+                localStorage.setItem(stickerkey, text);
+                applyStickerInfo(stickername, data);
+            } else {
+                console.log("cache hit");
+            }
+        })
+    })
+    .catch(
+    function(err) {
+        console.log('Fetch Error :-S', err);
+    });
+    return false;
+}
+
+function applyStickerInfo(stickername, info) {
+    if (!info || !info.stickers)
+        return;
+    
+    document.getElementById('loadStickerForm').style = 'visibility: hidden';
+    addRecentSticker(stickername);
+    document.getElementById("resultTitle").innerText = info.name;
+    document.getElementById("usagespan").style = "";
+    var resultTarget = document.getElementById("result");
+    resultTarget.innerHTML = "";
+    console.log(info.name);
+    info.stickers.forEach(function(element) {
+        var elem = document.createElement("IMG");
+        elem.alt = element.emoji;
+        elem.src = getImgSrc(128, element);
+        elem.addEventListener("dblclick", function() {
+            document.getElementById("url").value = getImgMarkdown(stickername, 256, element);        
+            copy();
+        });
+        resultTarget.appendChild(elem);
+    });
+}
+
+function copy() {
+              /* Get the text field */
+  var copyText = document.getElementById("url");
+
+  /* Select the text field */
+  copyText.select();
+
+  /* Copy the text inside the text field */
+  document.execCommand("copy");
+
+  /* Alert the copied text */
+  alert("Copied the text: " + copyText.value);
+}
+
+function init() {
+    renderRecentSticker();
+
+    var recentString = localStorage.getItem("!recent");
+    var initSticker = "podosays";
+    if (recentString) {
+        initSticker = JSON.parse(recentString)[0];
+    }
+
+    loadSticker(initSticker);
+}
+    </script>
+    </head>
+    <body onload="init()">
+        <div id="recentStickers"></div>
+        <img src="searchadd.svg" alt="load sticker by name" 
+        onclick="document.getElementById('loadStickerForm').style = '';"/>
+        <form id="loadStickerForm" style="visibility: hidden" 
+        onsubmit="return loadSticker(this.sticker.value);">
+            <input type="text" name="sticker" value="podosays" />
+            <input type="submit" value="load" />
+            <br />
+            <input type="text" name="url" id="url" value="" style="visibility:hidden;width:800px;" />
+        </form>
+        <h1 id="resultTitle"></h1>
+        <span id="usagespan" style="visibility: hidden;">Doubleclick sticker to copy markdown text.</span>
+        <br />
+        <div id="result" />
+    </body>
+</html>
+
