@@ -133,7 +133,9 @@ function applyStickerInfo(stickername, info) {
         elem.alt = element.emoji;
         elem.src = getImgSrc(128, element);
         elem.addEventListener("dblclick", function() {
-            copyTextToClipboard(getImgMarkdown(stickername, 256, element));
+            var markdowntext = getImgMarkdown(stickername, 256, element);
+            copyTextToClipboard(markdowntext);
+            alert("markdown text is copied. \n" + markdowntext);
         });
         resultTarget.appendChild(elem);
     });
