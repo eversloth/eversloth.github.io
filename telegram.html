@@ -204,10 +204,21 @@ function copyTextToClipboard(text) {
 function init() {
     renderRecentSticker();
 
-    var recentString = localStorage.getItem("!recent");
-    var initSticker = "podosays"; // default
-    if (recentString) {
-        initSticker = JSON.parse(recentString)[0];
+    var defaultSticker = "podosays"; // default
+    var initSticker = "";
+    if (location.hash) {
+        initSticker = location.hash.substr(1);
+    }
+    
+    if (!initSticker) {
+        var recentString = localStorage.getItem("!recent");
+        if (recentString) {
+            initSticker = JSON.parse(recentString)[0];
+        }
+    }
+    
+    if (!initSticker) {
+        initSticker = defaultSticker;
     }
 
     loadSticker(initSticker);
